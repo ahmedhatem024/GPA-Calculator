@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حساب ال (GPA)</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 10px; background-color: #f0f2f5; color: #333; }
+        .container { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        h2 { text-align: center; color: #007bff; margin-bottom: 20px; font-size: 22px; }
+        .section-title { font-weight: bold; margin-top: 15px; margin-bottom: 10px; color: #444; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .row-inputs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 13px; color: #666; font-weight: bold; }
+        
+        .course-card { background: #f9f9f9; border-radius: 8px; border: 1px solid #e1e1e1; padding: 12px; margin-bottom: 15px; position: relative; }
+        .course-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ddd; padding-bottom: 5px; margin-bottom: 8px; }
+        .course-title { font-weight: bold; color: #007bff; font-size: 14px; }
+        .delete-btn { background: #dc3545; color: white; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: bold; width: auto; margin: 0; }
+        .delete-btn:hover { background: #c82333; }
+        
+        .course-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .course-row > * { flex: 1 1 45%; }
+        
+        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        input:focus, select:focus { border-color: #007bff; outline: none; }
+        
+        .old-grade-container { display: none; width: 100%; margin-top: 5px; }
+        
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; margin-top: 8px; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .btn-calc { background: #28a745; margin-top: 15px; font-size: 18px; }
+        .btn-calc:hover { background: #218838; }
+        
+        .result-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin-top: 20px; display: none; }
+        .result-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; font-weight: bold; color: #333; }
+        .highlight { color: #28a745; font-size: 18px; }
+        .highlight-blue { color: #007bff; font-size: 18px; }
+        .hours-line { font-size: 14px; color: #555; margin-top: 10px; border-top: 1px solid #ccc; padding-top: 8px; text-align: center; }
+        
+        .signature { text-align: center; margin-top: 25px; font-size: 14px; color: #888; font-weight: bold; font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>حساب المعدل الفصلي و التراكمي (GPA)</h2>
+    
+    <div class="section-title">البيانات التراكمية السابقة</div>
+    <div class="row-inputs">
+        <div class="input-group">
+            <label>المعدل التراكمي السابق :</label>
+            <input type="number" id="prevGPA" placeholder="مثال: 2.80" min="0" max="4" step="0.01">
+        </div>
+        <div class="input-group">
+            <label>الساعات المجتازة السابقة :</label>
+            <input type="number" id="prevCredits" placeholder="مثال: 60" min="0" max="165">
+        </div>
+    </div>
+
+    <div class="section-title">مواد الترم الحالي</div>
+    <div id="courses">
+        <div class="course-card">
+            <div class="course-header">
+                <div class="course-title">المادة الأولى</div>
+                <button class="delete-btn" onclick="removeCourse(this)">حذف المادة</button>
+            </div>
+            <div class="course-row">
+                <input type="number" placeholder="الساعات" class="credits" min="1" max="6">
+                
+                <select class="grade">
+                    <option value="">التقدير الحالي</option>
+                    <option value="4.00">A+</option><option value="4.00">A</option><option value="3.70">A-</option>
+                    <option value="3.30">B+</option><option value="3.00">B</option><option value="2.70">B-</option>
+                    <option value="2.30">C+</option><option value="2.00">C</option><option value="1.70">C-</option>
+                    <option value="1.30">D+</option><option value="1.00">D</option><option value="0.00">F</option>
+                </select>
+
+                <select class="status" onchange="handleStatusChange(this)">
+                    <option value="new">أول مرة</option>
+                    <option value="repeat">إعادة (رسوب)</option>
+                    <option value="improve">تحسين التقدير</option>
+                </select>
+
+                <div class="old-grade-container">
+                    <select class="old-grade" style="width: 100%;">
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button onclick="addCourse()">+ إضافة مادة جديدة</button>
+    <button onclick="calculateGPA()" class="btn-calc">احسب النتائج</button>
+
+    <div class="result-box" id="resultBox">
+        <div class="result-line">
+            <span>المعدل الفصلي (This Semester GPA) :</span>
+            <span id="semesterGPA" class="highlight-blue">0.00</span>
+        </div>
+        <div class="result-line">
+            <span>المعدل التراكمي الكلي (GPA) :</span>
+            <span id="cumulativeGPA" class="highlight">0.00</span>
+        </div>
+        <div class="result-line" style="border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px;">
+            <span>التقدير العام :</span>
+            <span id="ratingAr" style="color: #e67e22;">-</span>
+        </div>
+        <div class="result-line">
+            <span>Overall rating :</span>
+            <span id="ratingEn" style="color: #e67e22;">-</span>
+        </div>
+        <div class="hours-line">
+            إجمالي الساعات الكلية المنجزة : <strong id="totalHoursDisplay">0</strong> من 165
+        </div>
+    </div>
+    
+    <div class="signature">Made By AH</div>
+</div>
+
+<script>
+    const arabicNumbers = ["الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة", "الحادية عشر", "الثانية عشر"];
+
+    function handleStatusChange(selectElement) {
+        let card = selectElement.closest('.course-card');
+        let oldGradeContainer = card.querySelector('.old-grade-container');
+        let oldGradeSelect = card.querySelector('.old-grade');
+        
+        let status = selectElement.value;
+
+        if (status === 'new') {
+            oldGradeContainer.style.display = 'none';
+            oldGradeSelect.innerHTML = '';
+        } else if (status === 'repeat') {
+            oldGradeContainer.style.display = 'block';
+            oldGradeSelect.innerHTML =`
+                <option value="">التقدير السابق</option>
+                <option value="0.00">F</option>
+            `;
+        } else if (status === 'improve') {
+            oldGradeContainer.style.display = 'block';
+            oldGradeSelect.innerHTML = `
+                <option value="">التقدير السابق</option>
+                <option value="4.00">A+</option><option value="4.00">A</option><option value="3.70">A-</option>
+                <option value="3.30">B+</option><option value="3.00">B</option><option value="2.70">B-</option>
+                <option value="2.30">C+</option><option value="2.00">C</option><option value="1.70">C-</option>
+                <option value="1.30">D+</option><option value="1.00">D</option>
+            `;
+        }
+    }
+
+    function addCourse() {
+        let coursesDiv = document.getElementById("courses");
+        
+        let newCard = document.createElement("div");
+        newCard.className = "course-card";
+        newCard.innerHTML = `
+            <div class="course-header">
+                <div class="course-title">المادة</div>
+                <button class="delete-btn" onclick="removeCourse(this)">حذف المادة</button>
+            </div>
+            <div class="course-row">
+                <input type="number" placeholder="الساعات" class="credits" min="1" max="6">
+                <select class="grade">
+                    <option value="">التقدير الحالي</option>
+                    <option value="4.00">A+</option><option value="4.00">A</option><option value="3.70">A-</option>
+                    <option value="3.30">B+</option><option value="3.00">B</option><option value="2.70">B-</option>
+                    <option value="2.30">C+</option><option value="2.00">C</option><option value="1.70">C-</option>
+                    <option value="1.30">D+</option><option value="1.00">D</option><option value="0.00">F</option>
+                </select>
+                <select class="status" onchange="handleStatusChange(this)">
+                    <option value="new">أول مرة</option>
+                    <option value="repeat">إعادة (رسوب)</option>
+                    <option value="improve">تحسين تقدير</option>
+                </select>
+                <div class="old-grade-container">
+                    <select class="old-grade" style="width: 100%;"></select>
+                </div>
+            </div>
+        `;
+        coursesDiv.appendChild(newCard);
+        updateCourseTitles();
+    }
+
+    function removeCourse(buttonElement) {
+        let card = buttonElement.closest('.course-card');
+        card.remove();
+        updateCourseTitles();
+    }
+
+    function updateCourseTitles() {
+        let courseCards = document.querySelectorAll('.course-card');
+        courseCards.forEach((card, index) => {
+            let title = arabicNumbers[index] ? "المادة " + arabicNumbers[index] : "المادة " + (index + 1);
+            card.querySelector('.course-title').innerText = title;
+        });
+    }
+
+    function getGeneralRating(gpa) {
+        if (gpa >= 3.40) return { ar: "امتياز", en: "Excellent" };
+        if (gpa >= 2.80) return { ar: "جيد جداً", en: "Very Good" };
+        if (gpa >= 2.40) return { ar: "جيد", en: "Good" };
+        if (gpa >= 2.00) return { ar: "مقبول", en: "Pass" };
+        return { ar: "ضعيف / راسب", en: "Fail" };
+    }
+
+    function calculateGPA() {
+        let prevGPA = parseFloat(document.getElementById("prevGPA").value) || 0;
+        let prevCredits = parseFloat(document.getElementById("prevCredits").value) || 0;
+
+        let courseCards = document.querySelectorAll(".course-card");
+        
+        let semPoints = 0;
+        let semCredits = 0;
+
+        let cumPoints = prevGPA * prevCredits;
+        let cumCredits = prevCredits;
+
+        // متغير حساب الساعات المنجزة فقط
+        let earnedCredits = prevCredits;
+
+        let isValid = true;
+
+        courseCards.forEach(card => {
+            let credit = parseFloat(card.querySelector(".credits").value);
+            let currentGrade = parseFloat(card.querySelector(".grade").value);
+            let status = card.querySelector(".status").value;
+            let oldGrade = parseFloat(card.querySelector(".old-grade").value);
+
+            if (!isNaN(credit) && !isNaN(currentGrade)) {
+                
+                // حسابات الـ GPA والتراكمي (نفس النسخة الصحيحة اللي فاتت بدون تغيير)
+                semPoints += credit * currentGrade;
+                semCredits += credit;
+
+                if (status === 'new') {
+                    cumPoints += credit * currentGrade;
+                    cumCredits += credit;
+                } else if (status === 'repeat' || status === 'improve') {
+                    if (isNaN(oldGrade)) {
+                        alert("يرجى تحديد التقدير السابق للمواد المعاد تكرارها.");
+                        isValid = false;
+                        return;
+                    }
+                    cumPoints += (credit * currentGrade) - (credit * oldGrade);
+                }
+
+                // حساب الساعات المنجزة 
+                // يجمع ساعات المادة لو تقديرها مش F (أكبر من 0)، وتجاهلنا التحسين عشان متتجمعش مرتين
+                if (currentGrade > 0 && status !== 'improve') {
+                    earnedCredits += credit;
+                }
+            }
+        });
+
+        if (!isValid) return;
+
+        if (semCredits > 0 || prevCredits > 0) {
+            let semesterGPA = semCredits > 0 ? (semPoints / semCredits) : 0;
+            let cumulativeGPA = cumCredits > 0 ? (cumPoints / cumCredits) : 0;
+
+            cumulativeGPA = Math.max(0, Math.min(4.0, cumulativeGPA));
+
+            let ratings = getGeneralRating(cumulativeGPA);
+
+            document.getElementById("semesterGPA").innerText = semesterGPA.toFixed(2);
+            document.getElementById("cumulativeGPA").innerText = cumulativeGPA.toFixed(2);
+            document.getElementById("ratingAr").innerText = ratings.ar;
+            document.getElementById("ratingEn").innerText = ratings.en;
+            
+            // وضع القيمة الجديدة الخاصة بالساعات المنجزة
+            document.getElementById("totalHoursDisplay").innerText = earnedCredits;
+            
+            document.getElementById("resultBox").style.display = "block";
+        } else {
+            alert("يرجى إدخال بيانات صحيحة.");
+        }
+    }
+</script>
+
+</body>
+</html>
